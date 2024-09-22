@@ -45,18 +45,21 @@ The simulation also provides an animated visualization of the packet's path thro
 
 The Q-value for a given state-action pair `(s, a)` is updated using the **Bellman equation**:
 
-\[
+This is represented as:
+
+$$
 Q(s, a) \leftarrow Q(s, a) + \alpha \left[ r + \gamma \max_{a'} Q(s', a') - Q(s, a) \right]
-\]
+$$
 
 Where:
-- `Q(s, a)` is the current Q-value of taking action `a` in state `s`.
-- `α` is the **learning rate**, which controls how much new information overrides the old information.
-- `r` is the **reward** received after taking the action.
-- `γ` is the **discount factor**, which determines how much future rewards are considered.
-- `max_{a'} Q(s', a')` is the maximum predicted Q-value for the next state `s'` after taking action `a`.
+- $Q(s, a)$ is the current Q-value of taking action $a$ in state $s$.
+- $\alpha$ is the **learning rate**, which controls how much new information overrides the old information.
+- $r$ is the **reward** received after taking the action.
+- $\gamma$ is the **discount factor**, which determines how much future rewards are considered.
+- $\max_{a'} Q(s', a')$ is the maximum predicted Q-value for the next state $s'$ after taking action $a$.
 
 This formula ensures that the Q-value reflects both the immediate reward and the estimated future rewards. The update process moves the Q-value towards the optimal expected total reward over time.
+
 
 ### Understanding the Bellman Equation
 
