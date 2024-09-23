@@ -98,7 +98,7 @@ To run the simulation, follow these steps:
 2. **Execute the Script**:
    - Run the main script to execute the simulation for a specified number of episodes. The default is 1000 episodes:
      ```bash
-     python simulation.py
+     python main.py
      ```
 
 3. **Output**:
