@@ -56,16 +56,16 @@ node_status = {node: True for node in nodes if node not in ['tx', 'rx']}  # Init
 # Connect and disconnect nodes
 def update_node_status():
     for node in node_status:
-        if node_status[node]:  # Nodo está conectado
+        if node_status[node]:
             node_lifetime[node] -= 1
             if node_lifetime[node] <= 0:
-                node_status[node] = False  # Desconectar nodo
-                node_reconnect_time[node] = random.randint(5, 20)  # Establecer tiempo de reconexión
-        else:  # Nodo está desconectado
+                node_status[node] = False
+                node_reconnect_time[node] = np.random.exponential(scale=10)
+        else:
             node_reconnect_time[node] -= 1
             if node_reconnect_time[node] <= 0:
-                node_status[node] = True  # Reconectar nodo
-                node_lifetime[node] = random.randint(5, 20)  # Establecer nueva vida útil
+                node_status[node] = True
+                node_lifetime[node] = np.random.exponential(scale=20)
 
 def select_next_node(q_values, available_nodes):
     available_nodes = [n for n in available_nodes if node_status.get(n, True)]
@@ -98,8 +98,7 @@ def send_packet(tx, rx):
     while current_node != rx:
         if total_hops >= max_hops:  # Assume lost packet after number of hops
             print(f"El paquete se ha perdido después de {total_hops} hops.")
-            # TODO: sacar esto de la penalización extra
-            return path, total_hops, total_time + max_hops * 5
+            return path, total_hops, total_time
 
         available_nodes = [n for n in neighbors[current_node] if node_status.get(n, True)]
         next_node = select_next_node(q_table[current_node][rx], available_nodes)
@@ -108,16 +107,15 @@ def send_packet(tx, rx):
             print(f"Nodo {current_node} no puede enviar el paquete, no hay nodos disponibles.")
             return path, total_hops, total_time
 
-        reward = -processing_time[next_node]
-        update_q_value(current_node, next_node, rx, reward)
+        update_q_value(current_node, next_node, rx, -1)
 
         current_node = next_node
         path.append(current_node)
         total_hops += 1
         total_time += processing_time[current_node]
 
-    final_reward = -processing_time[rx]
-    update_q_value(current_node, rx, rx, final_reward)
+    update_q_value(current_node, rx, rx, 100)
+
     path.append(rx)
     total_time += processing_time[rx]
 
@@ -129,10 +127,8 @@ def plot_network(path, episode):
     G = nx.DiGraph()
     G.add_nodes_from(nodes)
 
-    for node in nodes:
-        for neighbor in nodes:
-            if node != neighbor and q_table[node][neighbor].max() > 0:
-                G.add_edge(node, neighbor)
+    # Limpiar todas las aristas del grafo antes de dibujar
+    G.clear_edges()
 
     node_colors = []
     for node in nodes:
@@ -143,8 +139,10 @@ def plot_network(path, episode):
         else:
             node_colors.append('gray')
 
-    nx.draw(G, pos=positions, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=True)
+    # Dibujar los nodos pero sin las aristas predeterminadas
+    nx.draw(G, pos=positions, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
 
+    # Solo dibujar las aristas del camino en rojo
     edges_in_path = [(path[i], path[i+1]) for i in range(len(path) - 1)]
     nx.draw_networkx_edges(G, pos=positions, edgelist=edges_in_path, edge_color='r', width=3, arrows=True)
 
@@ -188,10 +186,8 @@ def animate_network(path, episode):
     G = nx.DiGraph()
     G.add_nodes_from(nodes)
 
-    for node in nodes:
-        for neighbor in nodes:
-            if node != neighbor and q_table[node][neighbor].max() > 0:
-                G.add_edge(node, neighbor)
+    # Limpiar todas las aristas del grafo antes de dibujar
+    G.clear_edges()
 
     node_colors = []
     for node in nodes:
@@ -202,13 +198,8 @@ def animate_network(path, episode):
         else:
             node_colors.append('gray')
 
-    nx.draw(G, pos=positions, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=True)
-
-    for node in nodes:
-        for neighbor in G.neighbors(node):
-            plt.text((positions[node][0] + positions[neighbor][0]) / 2,
-                     (positions[node][1] + positions[neighbor][1]) / 2,
-                     'V', fontsize=8, color='blue', ha='center')
+    # Dibujar los nodos pero sin las aristas predeterminadas
+    nx.draw(G, pos=positions, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
 
     for i in range(len(path) - 1):
         edges_in_path = [(path[i], path[i+1])]
