@@ -170,33 +170,6 @@ def send_packet(tx, rx):
 
     return path, total_hops, total_time, processed_functions
 
-def plot_q_tables(episode):
-    fig, axes = plt.subplots(2, 5, figsize=(20, 10))
-    fig.suptitle(f'Q-tables per node - Episode {episode}')
-
-    node_list = list(q_table.keys())
-    for i, ax in enumerate(axes.flat):
-        if i < len(node_list):
-            node = node_list[i]
-
-            q_values = np.array(list(q_table[node].values()))
-
-            ax.matshow(q_values, cmap="Blues")
-            ax.set_title(f"Q-table: {node}", fontsize=10)
-            ax.set_xticks(range(len(nodes)))
-            ax.set_xticklabels(nodes, rotation=90, fontsize=8)
-            ax.set_yticks(range(len(nodes)))
-            ax.set_yticklabels(nodes, fontsize=8)
-
-            for j in range(len(nodes)):
-                for k in range(len(nodes)):
-                    ax.text(k, j, f'{q_values[j, k]:.2f}', ha='center', va='center', fontsize=6)
-
-    plt.subplots_adjust(hspace=0.5, wspace=0.5)
-
-    plt.savefig(f'{output_folder}/q_tables_episode_{episode}.png')
-    plt.close(fig)
-
 def plot_network(path, processed_functions, functions_to_process, episode):
     plt.clf()
 
@@ -228,6 +201,36 @@ def plot_network(path, processed_functions, functions_to_process, episode):
     plt.legend([applied_text, missing_text], loc='upper right', fontsize=8)
 
     plt.savefig(f'{output_folder}/network_episode_{episode}.png')
+
+def plot_q_tables(episode):
+    fig, axes = plt.subplots(2, 5, figsize=(20, 10))
+    fig.suptitle(f'Q-tables per node - Episode {episode}')
+
+    node_list = list(q_table.keys())
+    for i, ax in enumerate(axes.flat):
+        if i < len(node_list):
+            node = node_list[i]
+
+            q_values = np.array(list(q_table[node].values()))
+
+            ax.matshow(q_values, cmap="Blues")
+            ax.set_title(f"Q-table: {node}", fontsize=10)
+            ax.set_xticks(range(len(nodes)))
+            ax.set_xticklabels(nodes, rotation=90, fontsize=8)
+            ax.set_yticks(range(len(nodes)))
+            ax.set_yticklabels(nodes, fontsize=8)
+
+            for j in range(len(nodes)):
+                for k in range(len(nodes)):
+                    ax.text(k, j, f'{q_values[j, k]:.2f}', ha='center', va='center', fontsize=6)
+
+    plt.subplots_adjust(hspace=0.5, wspace=0.5)
+
+    plt.savefig(f'{output_folder}/q_tables_episode_{episode}.png')
+    plt.close(fig)
+
+def random_color():
+    return "#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)])
 
 def animate_network(path, processed_functions, functions_to_process, episode):
     plt.clf()
@@ -283,9 +286,6 @@ def animate_network(path, processed_functions, functions_to_process, episode):
         nx.draw_networkx_edges(G, pos=positions, edgelist=edges_in_path, edge_color=edge_color, width=3, arrows=True)
         plt.title(f'Episodio {episode} - Camino: {" -> ".join(path[:i + 2])}')
         plt.pause(0.00001)
-
-def random_color():
-    return "#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)])
 
 def run_simulation(episodes):
     plt.figure(figsize=(12, 8))
