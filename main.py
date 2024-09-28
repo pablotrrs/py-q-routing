@@ -10,7 +10,10 @@ os.makedirs(output_folder, exist_ok=True)
 # Hyperparameters
 alpha = 0.5
 gamma = 0.9
-epsilon = 0.1
+initial_epsilon = 1.0
+min_epsilon = 0.1
+decay_rate = 0.99
+epsilon = initial_epsilon
 
 nodes = ['tx', 'i1', 'i2', 'i3', 'i4', 'i5', 'i6', 'i7', 'i8', 'i9', 'i10', 'rx']
 
@@ -44,16 +47,31 @@ positions = {
     'rx': (12, 0)
 }
 
-# Initialize each node parameters
+functions = ["A", "B", "C"]
+functions_sequence = ["A", "B", "C"]
 q_table = {
-    node: {dest: np.zeros(len(nodes)) for dest in nodes} for node in nodes
+    node: {dest: np.random.rand(len(nodes)) for dest in nodes} for node in nodes
 }
 processing_time = {node: random.randint(1, 5) for node in nodes}
 node_lifetime = {node: random.randint(5, 20) for node in nodes if node not in ['tx', 'rx']}
 node_reconnect_time = {node: random.randint(5, 20) for node in nodes if node not in ['tx', 'rx']}
 node_status = {node: True for node in nodes if node not in ['tx', 'rx']}  # Initially all nodes are connected
 
-# Connect and disconnect nodes
+nodes_intermediate = [node for node in nodes if node not in ['tx', 'rx']]
+node_functions = {}
+
+def assign_functions_to_nodes():
+    function_counts = {func: 0 for func in functions}
+    num_nodes = len(nodes_intermediate)
+    num_functions = len(functions)
+
+    for node in nodes_intermediate:
+        min_assigned_func = min(function_counts, key=function_counts.get)
+        node_functions[node] = min_assigned_func
+        function_counts[min_assigned_func] += 1
+
+assign_functions_to_nodes()
+
 def update_node_status():
     for node in node_status:
         if node_status[node]:
@@ -61,11 +79,17 @@ def update_node_status():
             if node_lifetime[node] <= 0:
                 node_status[node] = False
                 node_reconnect_time[node] = np.random.exponential(scale=10)
+                # Remove assigned function
+                del node_functions[node]
         else:
             node_reconnect_time[node] -= 1
             if node_reconnect_time[node] <= 0:
                 node_status[node] = True
                 node_lifetime[node] = np.random.exponential(scale=20)
+                # Assign a new function to a reconnected node
+                function_counts = {func: list(node_functions.values()).count(func) for func in functions}
+                min_assigned_func = min(function_counts, key=function_counts.get)
+                node_functions[node] = min_assigned_func
 
 def select_next_node(q_values, available_nodes):
     available_nodes = [n for n in available_nodes if node_status.get(n, True)]
@@ -88,67 +112,63 @@ def update_q_value(current_node, next_node, destination, reward):
     q_table[current_node][destination][nodes.index(next_node)] = new_q
 
 def send_packet(tx, rx):
+    global epsilon
     current_node = tx
     total_hops = 0
     total_time = 0
     max_hops = 100
 
     path = [current_node]
+    functions_to_process = functions_sequence.copy()
+    processed_functions = []
 
-    while current_node != rx:
-        if total_hops >= max_hops:  # Assume lost packet after number of hops
+    while not (current_node == rx and len(functions_to_process) == 0):
+
+        if total_hops >= max_hops:
             print(f"El paquete se ha perdido después de {total_hops} hops.")
-            return path, total_hops, total_time
+            return path, total_hops, total_time, processed_functions
 
         available_nodes = [n for n in neighbors[current_node] if node_status.get(n, True)]
         next_node = select_next_node(q_table[current_node][rx], available_nodes)
 
         if next_node is None:
             print(f"Nodo {current_node} no puede enviar el paquete, no hay nodos disponibles.")
-            return path, total_hops, total_time
+            return path, total_hops, total_time, processed_functions
 
-        update_q_value(current_node, next_node, rx, -1)
+        reward = 0
+
+        if functions_to_process:
+            expected_function = functions_to_process[0]
+            node_function = node_functions.get(next_node, None)
+
+            print(f'current_node: {current_node}, functions_to_process: {functions_to_process}, node_function: {node_function}')
+            if node_function == expected_function:
+                print(f'before processing function {node_function} from functions to process: {functions_to_process}')
+                functions_to_process.pop(0)
+                print(f'removing the function {node_function} from functions to process: {functions_to_process}')
+                processed_functions.append(node_function)
+                reward += 10
+            else:
+                reward -= 1
+
+        update_q_value(current_node, next_node, rx, reward)
 
         current_node = next_node
         path.append(current_node)
         total_hops += 1
         total_time += processing_time[current_node]
 
-    update_q_value(current_node, rx, rx, 100)
+    if len(functions_to_process) == 0:
+        print('Paquete entregado y todas las funciones procesadas.')
+    else:
+        print('Error: Se llegó al nodo receptor, pero aún quedan funciones por procesar.')
 
     path.append(rx)
     total_time += processing_time[rx]
 
-    return path, total_hops, total_time
+    epsilon = max(min_epsilon, epsilon * decay_rate)
 
-def plot_network(path, episode):
-    plt.clf()
-
-    G = nx.DiGraph()
-    G.add_nodes_from(nodes)
-
-    # Limpiar todas las aristas del grafo antes de dibujar
-    G.clear_edges()
-
-    node_colors = []
-    for node in nodes:
-        if node == 'tx' or node == 'rx':
-            node_colors.append('green')
-        elif node_status.get(node, True):
-            node_colors.append('green')
-        else:
-            node_colors.append('gray')
-
-    # Dibujar los nodos pero sin las aristas predeterminadas
-    nx.draw(G, pos=positions, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
-
-    # Solo dibujar las aristas del camino en rojo
-    edges_in_path = [(path[i], path[i+1]) for i in range(len(path) - 1)]
-    nx.draw_networkx_edges(G, pos=positions, edgelist=edges_in_path, edge_color='r', width=3, arrows=True)
-
-    plt.title(f'Episode {episode} - Path: {" -> ".join(path)}')
-
-    plt.savefig(f'{output_folder}/network_episode_{episode}.png')
+    return path, total_hops, total_time, processed_functions
 
 def plot_q_tables(episode):
     fig, axes = plt.subplots(2, 5, figsize=(20, 10))
@@ -177,19 +197,17 @@ def plot_q_tables(episode):
     plt.savefig(f'{output_folder}/q_tables_episode_{episode}.png')
     plt.close(fig)
 
-def random_color():
-    return "#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)])
-
-def animate_network(path, episode):
+def plot_network(path, processed_functions, functions_to_process, episode):
     plt.clf()
 
     G = nx.DiGraph()
     G.add_nodes_from(nodes)
 
-    # Limpiar todas las aristas del grafo antes de dibujar
     G.clear_edges()
 
     node_colors = []
+    node_labels = {}
+
     for node in nodes:
         if node == 'tx' or node == 'rx':
             node_colors.append('green')
@@ -198,29 +216,90 @@ def animate_network(path, episode):
         else:
             node_colors.append('gray')
 
-    # Dibujar los nodos pero sin las aristas predeterminadas
-    nx.draw(G, pos=positions, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
+        function = node_functions.get(node, "")
+        node_labels[node] = f'{node}\nFunc: {function}'
 
-    for i in range(len(path) - 1):
-        edges_in_path = [(path[i], path[i+1])]
+    nx.draw(G, pos=positions, labels=node_labels, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
+
+    edges_in_path = [(path[i], path[i + 1]) for i in range(len(path) - 1)]
+    nx.draw_networkx_edges(G, pos=positions, edgelist=edges_in_path, edge_color='r', width=3, arrows=True)
+
+    plt.title(f'Episode {episode} - Path: {" -> ".join(path)}')
+    plt.legend([applied_text, missing_text], loc='upper right', fontsize=8)
+
+    plt.savefig(f'{output_folder}/network_episode_{episode}.png')
+
+def animate_network(path, processed_functions, functions_to_process, episode):
+    plt.clf()
+
+    G = nx.DiGraph()
+    G.add_nodes_from(nodes)
+
+    G.clear_edges()
+
+    node_colors = []
+    node_labels = {}
+    applied_functions = []
+    missing_functions = functions_sequence.copy()
+
+    for node in nodes:
+        if node == 'tx' or node == 'rx':
+            node_colors.append('green')
+        elif node_status.get(node, True):
+            node_colors.append('green')
+        else:
+            node_colors.append('gray')
+
+        function = node_functions.get(node, "")
+        node_labels[node] = f'{node}\nFunc: {function}'
+
+    nx.draw(G, pos=positions, labels=node_labels, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
+
+    for i in range(len(path)-1):
+        if (path[i+1] != 'rx' and path[i+1] != 'tx'):
+            applied_function = node_functions[path[i+1]]
+
+            if applied_function not in applied_functions:
+                applied_functions.append(applied_function)
+
+            if applied_function in missing_functions:
+                missing_functions.remove(applied_function)
+
+        applied_text = "Applied functions: " + ", ".join(applied_functions) if applied_functions else "No function applied"
+        missing_text = "Missing functions: " + ", ".join(missing_functions) if missing_functions else "All functions applied"
+
+        # Clear the legend first to avoid duplicates
+        plt.legend().remove()
+
+        # Create a dummy handle for the legend without markers
+        handles = [plt.Line2D([0], [0], color='none', label=applied_text), 
+                   plt.Line2D([0], [0], color='none', label=missing_text)]
+
+        # Display the legend without circles or squares
+        plt.legend(handles=handles, loc='upper right', fontsize=8)
+
+        edges_in_path = [(path[i], path[i + 1])]
         edge_color = random_color()
         nx.draw_networkx_edges(G, pos=positions, edgelist=edges_in_path, edge_color=edge_color, width=3, arrows=True)
         plt.title(f'Episodio {episode} - Camino: {" -> ".join(path[:i + 2])}')
         plt.pause(0.00001)
+
+def random_color():
+    return "#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)])
 
 def run_simulation(episodes):
     plt.figure(figsize=(12, 8))
     print(f'Iniciando simulación de {episodes} episodios...')
     for episode in range(1, episodes + 1):
         update_node_status()  # Actualizar el estado de los nodos en cada episodio
-        path, hops, time = send_packet('tx', 'rx')
+        path, hops, time, processed_functions = send_packet('tx', 'rx')
         print(f"Episodio {episode}: El paquete realizó {hops} saltos y tardó {time} unidades de tiempo.")
         print(f"-------------------------------------------------")
         plot_q_tables(episode)
-        animate_network(path, episode)
+        animate_network(path, episode, processed_functions, episode)
 
     plt.show()
     print('Simulación finalizada.')
 
 # Ejecutamos la simulación
-run_simulation(1000)
+run_simulation(100)
