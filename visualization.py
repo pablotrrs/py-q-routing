@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
-import matplotlib.cm as cm  # Import colormap for color gradient
+import matplotlib.cm as cm
 
 # Define positions for the nodes in the network
 positions = {
@@ -24,15 +24,12 @@ def plot_network(path, processed_functions, functions_sequence, episode, nodes, 
     node_colors = ['green' if node_status.get(node, True) else 'gray' for node in nodes]
     node_labels = {node: f'{node}\nFunc: {node_functions.get(node, "")}' for node in nodes}
 
-    # Draw the network graph (nodes and base edges)
     nx.draw(G, pos=positions, labels=node_labels, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
 
     # Create a colormap to vary the color of edges as the agent moves
     cmap = cm.get_cmap('plasma')
 
     total_hops_in_path = len(path) - 1
-    color_scaling_factor = 1.5
-
     min_color = 0.4
     max_color = 1.0
 
@@ -57,17 +54,15 @@ def plot_network(path, processed_functions, functions_sequence, episode, nodes, 
         color_index = min_color + (i / total_hops_in_path) * (max_color - min_color)
         color = cmap(color_index)
 
-        # Highlight the node where the agent is jumping to
-        next_node = path[i + 1]
-        node_colors = ['red' if node == next_node else 'green' if node_status.get(node, True) else 'gray' for node in nodes]
+        # Highlight the destination node of the hop (next_node)
+        destination_node = path[i + 1]  # Destination of the hop
+        node_colors = ['red' if node == destination_node else 'green' if node_status.get(node, True) else 'gray' for node in nodes]
 
-        # Redraw the nodes to update the destination node's color
         nx.draw(G, pos=positions, labels=node_labels, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
-        
-        # Draw the current hop's edge with a unique color
+
         nx.draw_networkx_edges(G, pos=positions, edgelist=edges_in_path, edge_color=[color], width=3, arrows=True)
 
         plt.title(f'Episode {episode} - Path: {" -> ".join(path[:i + 2])}')
-        plt.pause(0.0001)
+        plt.pause(0.001)
 
-    plt.pause(0.0001)
+    plt.pause(0.001)

@@ -4,6 +4,8 @@ The simulation emulates the behavior of deep learning layers by distributing fun
 
 ![Network Animation](./assets/network-animation.gif)
 
+This Python-based simulation models the behavior of the network routing system for ESP8266 devices, as implemented in the project hosted at [this repository](https://github.com/FrancoBre/esp-q-mesh-routing). The simulation helps visualize how packets navigate through a distributed mesh network while seeking required processing functions. The aim is to optimize routing and emulate the real-world performance of the hardware-based system.
+
 ### Key Features
 
 1. **Dynamic Function Assignment**:
@@ -42,8 +44,6 @@ Where:
 - `γ` is the **discount factor**, which determines how much future rewards are considered.
 - `max Q(s', a')` is the maximum predicted Q-value for the next state `s'` after taking action `a`.
 
-![Q-Learning Process](images/q_learning_process.png)
-
 
 ## Simulation Workflow
 
@@ -53,6 +53,7 @@ Where:
 4. **Q-Table Updates**: The Q-table for each node is updated based on the reward received for each hop and successful processing of functions.
 5. **Visualization**: After each episode, the network topology and Q-tables are visualized and saved as images.
 
+![Q-Table Visualization](simulation_images/q_tables_episode_1.png)
 
 ### Epsilon-Greedy Strategy
 
@@ -99,3 +100,14 @@ To run the simulation, follow these steps:
      - A visualization of the network and the path taken by the packet.
      - The Q-tables for each node, showing the learned Q-values after each episode.
    - All images are saved in the `simulation_images/` directory.
+
+## System Structure
+
+1. **main.py**:
+   - This is the main entry point of the simulation. It handles command-line argument parsing, initializes the simulation parameters, and runs the simulation for a specified number of episodes. It also orchestrates the visualization of the results.
+
+2. **simulation.py**:
+   - This script contains the core logic of the simulation, including the Q-learning algorithm, function assignment to nodes, and packet transmission logic. It manages the dynamic assignment of functions to nodes, updates node statuses (e.g., disconnection/reconnection), and handles Q-table updates after each hop.
+
+3. **visualization.py**:
+   - This script is responsible for generating visual representations of the network during the simulation. It creates static and animated visualizations of the packet's path through the network, using color gradients to indicate progress. Additionally, it provides insights into which nodes are processing the required functions and how the network adapts over time.
