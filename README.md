@@ -1,64 +1,72 @@
-# Dynamic Network Routing with Q-Learning
+## System Overview
 
-This project implements a dynamic routing system in a simulated network using Q-Learning. The goal is to simulate the transmission of a packet from a `sender node` to a `receiver node` while learning the most efficient route through intermediate nodes. This simulation adapts to changes in the network topology due to node disconnection and reconnection, optimizing the route by minimizing the number of hops and processing time at each node.
+The simulation emulates the behavior of deep learning layers by distributing functions (e.g., A, B, C) across the nodes of a network. Packets must traverse the network, encountering the required functions in the correct sequence to process the data as if it were passing through layers of a deep learning model.
 
-![Network Topology Example](simulation_images/network_episode_1.png)
+![Network Animation](./assets/network-animation.gif)
 
-Each episode in the simulation allows the network to learn and improve routing decisions by updating a Q-table based on the reward obtained at each hop. The system uses an epsilon-greedy algorithm for exploration and exploitation of available routes, dynamically adjusting to network failures and reconnections.
+### Key Features
 
-## How the Learning Works
+1. **Dynamic Function Assignment**:
+   - Functions (e.g., A, B, C) are assigned to nodes dynamically, and their availability changes over time. Nodes randomly take on different functions, and packets must find a route that allows them to process the required functions in sequence.
 
-### Step-by-Step Process:
+2. **Fixed Nodes, Dynamic Functions**:
+   - The nodes in the network are fixed, but the functions they host are dynamic and unknown. The network must discover and adapt to these changes while routing packets.
 
-1. **Network Setup**:
-   - The network consists of 12 nodes: 1 `sender`, 1 `receiver`, and 10 intermediate nodes (`i1` to `i10`).
-   - Each node has predefined neighbors, and their positions are fixed in a 2D space.
+3. **Q-Learning for Route Optimization**:
+   - The network learns the optimal routes using Q-Learning, where the Q-table is initialized with random values to encourage exploration. Nodes receive rewards when packets pass through them in the correct function sequence.
 
-2. **Q-Learning Initialization**:
-   - Each node has a Q-table that stores Q-values for possible actions (hopping to neighboring nodes).
-   - The Q-learning parameters include learning rate (`alpha`), discount factor (`gamma`), and exploration rate (`epsilon`).
-   - A reward system is implemented based on the time taken by each node to process and forward the packet.
+4. **Gradual Node Integration**:
+   - New nodes can be integrated into the network progressively, allowing the system to adapt and explore new routes.
 
-3. **Packet Transmission**:
-   - In each episode, the `sender` node attempts to send a packet to the `receiver` node.
-   - At each step, the current node uses its Q-table to choose the next hop based on the available neighbors.
-   - The system balances exploration (randomly choosing a neighbor with probability `epsilon`) and exploitation (choosing the neighbor with the highest Q-value).
+5. **Packet Processing**:
+   - Packets are routed through the network, and each node modifies the packet based on the function it is hosting. The packet must pass through all required functions (e.g., A → B → C) in the correct order.
 
-4. **Node Disconnections**:
-   - Intermediate nodes can disconnect and reconnect randomly, simulating real-world network instabilities.
-   - The network updates the status of each node dynamically, and nodes that are offline cannot participate in the routing process.
 
-5. **Q-Table Updates**:
-   - After each hop, the Q-value for the action taken is updated based on the reward received and the future expected reward.
-   - The reward for each hop is based on the processing time of the node. If the packet reaches the receiver, a final reward is applied.
+### Dynamic Function Assignment and Routing
 
-6. **Visualization**:
-   - Each episode is visualized as a directed graph where nodes and their connections are drawn. Nodes are colored based on their status (active or inactive), and the packet's path is highlighted.
-   - The Q-tables are also visualized after each episode to show the learning progress.
+In this system, the functions (A, B, C) dynamically appear and disappear at different nodes. The sender node initializes the packet with a list of required functions in a specific order. As the packet traverses the network, each node checks if it hosts the required function and processes the packet accordingly. The packet must follow the correct function sequence before reaching the receiver.
 
-![Q-Table Visualization](simulation_images/q_tables_episode_1.png)
-
-### Network Animation:
-The simulation also provides an animated visualization of the packet's path through the network in each episode, highlighting the selected route with random colors for each hop.
 
 ## Q-Value Calculation
 
 The Q-value for a given state-action pair `(s, a)` is updated using the **Bellman equation**:
-
-This is represented as:
 
 $$
 Q(s, a) \leftarrow Q(s, a) + \alpha \left[ r + \gamma \max_{a'} Q(s', a') - Q(s, a) \right]
 $$
 
 Where:
-- $Q(s, a)$ is the current Q-value of taking action $a$ in state $s$.
-- $\alpha$ is the **learning rate**, which controls how much new information overrides the old information.
-- $r$ is the **reward** received after taking the action.
-- $\gamma$ is the **discount factor**, which determines how much future rewards are considered.
-- $\max_{a'} Q(s', a')$ is the maximum predicted Q-value for the next state $s'$ after taking action $a$.
+- `Q(s, a)` is the current Q-value of taking action `a` in state `s`.
+- `α` is the **learning rate**, which controls how much new information overrides the old information.
+- `r` is the **reward** received after taking the action.
+- `γ` is the **discount factor**, which determines how much future rewards are considered.
+- `max Q(s', a')` is the maximum predicted Q-value for the next state `s'` after taking action `a`.
 
-This formula ensures that the Q-value reflects both the immediate reward and the estimated future rewards. The update process moves the Q-value towards the optimal expected total reward over time.
+![Q-Learning Process](images/q_learning_process.png)
+
+
+## Simulation Workflow
+
+1. **Initialization**: The network, Q-tables, and parameters are initialized, with functions dynamically assigned to nodes.
+2. **Packet Transmission**: In each episode, the sender sends a packet that must pass through nodes with the required functions in sequence.
+3. **Node Status Updates**: Functions dynamically appear/disappear, and the network adapts to these changes.
+4. **Q-Table Updates**: The Q-table for each node is updated based on the reward received for each hop and successful processing of functions.
+5. **Visualization**: After each episode, the network topology and Q-tables are visualized and saved as images.
+
+
+### Epsilon-Greedy Strategy
+
+The system uses an **epsilon-greedy strategy** to balance exploration and exploitation. With a probability of `epsilon`, the system will randomly explore a neighboring node. Otherwise, it chooses the neighbor with the highest Q-value for exploitation.
+
+
+### Node Disconnections
+
+Intermediate nodes can disconnect and reconnect randomly, simulating network instabilities. The network dynamically adapts to these changes by updating the status of each node, and offline nodes do not participate in the routing process.
+
+
+### Network Animation
+
+The simulation provides an animated visualization of the packet's path through the network in each episode, highlighting the selected route with varying colors for each hop. This allows you to observe how the packet dynamically finds its path through the network, adapting to changes in function availability and node status.
 
 
 ### Understanding the Bellman Equation
@@ -69,46 +77,25 @@ The Bellman equation is fundamental in reinforcement learning because it express
 
 By combining these two terms, the algorithm learns not only from the immediate feedback but also takes into account how future decisions will affect the overall outcome.
 
-## Simulation Workflow
-
-Here’s a breakdown of the simulation workflow:
-
-- **Initialization**: The network, Q-tables, and parameters are initialized.
-- **Packet Sending**: In each episode, the sender tries to deliver a packet to the receiver, learning the optimal path through the network.
-- **Node Status Updates**: Nodes can disconnect and reconnect randomly during the simulation.
-- **Q-Table Updates**: The Q-table for each node is updated based on the reward received for each hop.
-- **Visualization**: After each episode, the network topology and Q-tables are visualized and saved as images.
-
-### Parameters
-
-- **alpha** (learning rate): 0.5
-- **gamma** (discount factor): 0.9
-- **epsilon** (exploration rate): 0.1
 
 ## Running the Simulation
 
 To run the simulation, follow these steps:
 
-1. **Ensure Required Libraries**:
+1. **Install Required Libraries**:
    - The simulation uses the following Python libraries: `numpy`, `matplotlib`, `networkx`, and `os`. Install them via `pip` if needed:
      ```bash
      pip install numpy matplotlib networkx
      ```
 
 2. **Execute the Script**:
-   - Run the main script to execute the simulation for a specified number of episodes. The default is 1000 episodes:
+   - Run the main script to execute the simulation for a specified number of episodes. The default is 100 episodes:
      ```bash
-     python main.py
+     python3 main.py --episodes 100 --epsilon 1.0 --alpha 0.5 --gamma 0.9
      ```
 
 3. **Output**:
-   - The simulation will generate two types of visual outputs for each episode:
+   - The simulation generates visual outputs:
      - A visualization of the network and the path taken by the packet.
-     - The Q-tables for each node, showing the learned Q-values after the episode.
-   - All images will be saved in the `simulation_images/` directory.
-
-## Next Steps
-
-- **Test with Different Parameters**: Experiment with different values for `alpha`, `gamma`, and `epsilon` to observe how they affect the learning process.
-- **Increase Network Size**: Add more nodes and neighbors to simulate a larger network and observe the system's performance.
-- **Implement More Complex Reward Structures**: Introduce new factors into the reward function, such as packet loss penalties or traffic congestion costs.
+     - The Q-tables for each node, showing the learned Q-values after each episode.
+   - All images are saved in the `simulation_images/` directory.
