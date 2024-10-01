@@ -17,7 +17,7 @@ for i in range(36):
     row, col = divmod(i, 6)
     positions[f'i{i}'] = ((col + 1) * 2, row * 2)
 
-def plot_network(path, processed_functions, functions_sequence, episode, nodes, neighbors, node_status, node_functions):
+def animate_network(path, processed_functions, functions_sequence, episode, nodes, neighbors, node_status, node_functions):
     """Plots the network graph showing the path, applied functions, and missing functions, with progressive colors and active node highlight."""
     plt.clf()
 
@@ -70,7 +70,7 @@ def plot_network(path, processed_functions, functions_sequence, episode, nodes, 
         plt.title(f'Episode {episode} - Path: {" -> ".join(path[:i + 2])}')
         plt.pause(0.001)
 
-    plt.pause(0.001)
+    plt.pause(0.0000001)
 
 def plot_q_tables(q_table, episode):
     cell_size = 30
@@ -101,3 +101,28 @@ def plot_q_tables(q_table, episode):
         plt.tight_layout()
         plt.savefig(f'{output_folder}/q_table_{node}_episode_{episode}.png')
         plt.close(fig)
+
+def plot_network(path, nodes, neighbors, node_status, episode):
+    plt.clf()
+
+    G = nx.DiGraph()
+    G.add_nodes_from(nodes)
+    G.add_edges_from([(node1, node2) for node1 in neighbors for node2 in neighbors[node1]])
+
+    node_colors = []
+    for node in nodes:
+        if node == 'tx' or node == 'rx':
+            node_colors.append('green')
+        elif node_status.get(node, True):
+            node_colors.append('green')
+        else:
+            node_colors.append('gray')
+
+    nx.draw(G, pos=positions, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold', arrows=False)
+
+    edges_in_path = [(path[i], path[i+1]) for i in range(len(path) - 1)]
+    nx.draw_networkx_edges(G, pos=positions, edgelist=edges_in_path, edge_color='blue', width=3, arrows=True)
+
+    plt.title(f'Episode {episode} - Path: {" -> ".join(path)}')
+
+    plt.savefig(f'{output_folder}/network_episode_{episode}.png')
