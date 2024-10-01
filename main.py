@@ -1,6 +1,6 @@
 import argparse
-from simulation import nodes, neighbors, send_packet, update_node_status, node_status, node_functions, functions_sequence
-from visualization import plot_network
+from simulation import nodes, neighbors, send_packet, update_node_status, node_status, node_functions, functions_sequence, q_table
+from visualization import plot_network, plot_q_tables
 
 def run_simulation(episodes, epsilon, alpha, gamma):
     """Runs the simulation for the given number of episodes with specified hyperparameters."""
@@ -16,6 +16,7 @@ def run_simulation(episodes, epsilon, alpha, gamma):
         
         # Call plot_network to visualize the current episode
         plot_network(path, processed_functions, functions_sequence, episode, nodes, neighbors, node_status, node_functions)
+        plot_q_tables(q_table, episode)
 
     print('Simulation finished.')
 

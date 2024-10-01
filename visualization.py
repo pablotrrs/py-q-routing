@@ -1,6 +1,11 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 import matplotlib.cm as cm
+import os
+
+output_folder = 'simulation_images'
+os.makedirs(output_folder, exist_ok=True)
 
 # Define positions for the nodes in the network
 positions = {
@@ -66,3 +71,33 @@ def plot_network(path, processed_functions, functions_sequence, episode, nodes, 
         plt.pause(0.001)
 
     plt.pause(0.001)
+
+def plot_q_tables(q_table, episode):
+    cell_size = 30
+    pixels_per_inch = 96
+
+    for i in range(0, 36):
+        node = f'i{i}'
+        q_values = np.array(list(q_table[node].values()))
+        N = q_values.shape[0] 
+        figure_size_in_pixels = N * cell_size
+        figure_size_in_inches = figure_size_in_pixels / pixels_per_inch
+        fig, ax = plt.subplots(figsize=(figure_size_in_inches, figure_size_in_inches))
+        cax = ax.matshow(q_values, cmap="RdYlGn", vmin=-100, vmax=100)
+        fig.colorbar(cax, ax=ax)
+
+        for (row, col), val in np.ndenumerate(q_values):
+            ax.text(col, row, f'{val:.1f}', ha='center', va='center', fontsize=8, color='black')
+
+        ax.set_title(f"Q-table: {node} - Episode {episode}", fontsize=10)
+        ax.set_xticks(range(N))
+        ax.set_xticklabels([f'{n}' for n in range(N)], rotation=90, fontsize=8)
+        ax.set_yticks(range(N))
+        ax.set_yticklabels([f'{n}' for n in range(N)], fontsize=8)
+        ax.tick_params(axis='x', which='major', pad=10)
+        ax.tick_params(axis='y', which='major', pad=10)
+        ax.set_aspect('equal')
+
+        plt.tight_layout()
+        plt.savefig(f'{output_folder}/q_table_{node}_episode_{episode}.png')
+        plt.close(fig)
